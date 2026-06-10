@@ -4,7 +4,7 @@ import {
   RotateCcw, CornerDownLeft, ScanLine, Lock
 } from "lucide-react";
 
-const DEFAULT_RULESET = `PRODUCT: VascuLink Pro — real-time vascular monitoring device
+const DEFAULT_RULESET = `PRODUCT: VascuLink Pro - real-time vascular monitoring device
 
 REGULATORY STATUS
 - Cleared under FDA 510(k) K221847 for adult and pediatric use.
@@ -24,7 +24,7 @@ PROHIBITED
 APPROVED DESCRIPTORS
 - "Trusted by clinical teams", "a solution for vascular monitoring".`;
 
-const DEFAULT_DOC = `VascuLink Pro — Distributor Overview
+const DEFAULT_DOC = `VascuLink Pro - Distributor Overview
 
 VascuLink Pro delivers real-time vascular monitoring with clinical-grade accuracy, cleared under 510(k) K221847 for adult and pediatric use.
 
@@ -141,6 +141,8 @@ export default function CadenSeeDemo() {
   const [flags, setFlags] = useState(null);
   const [checking, setChecking] = useState(false);
   const [checkError, setCheckError] = useState("");
+  const [cleanFromCheck, setCleanFromCheck] = useState(false);
+  const [dirty, setDirty] = useState(false);
 
   const [instruction, setInstruction] = useState(
     "Draft a short distributor email with an intro, product benefits, and clinical outcomes."
@@ -161,11 +163,13 @@ export default function CadenSeeDemo() {
     setEditing(false);
     try {
       const sys =
-        'You are CadenSee, a regulatory marketing-compliance engine for medtech. Compare marketing CONTENT against an APPROVED RULESET and flag only genuine compliance problems: claims that exceed, contradict, or are not supported by the ruleset, plus prohibited language. Ignore style, tone, grammar. For each problem return: the EXACT verbatim text from the content; a "severity" of exactly one of "high" (overstated efficacy or safety, e.g. a figure above the approved limit), "prohibited" (banned superlative, comparative, off-label, or diagnosis/treatment language), or "unsupported" (a claim with no backing rule); a 3-5 word "issue" label; the specific "rule" it breaks; and a compliant "suggestion" using only language the ruleset permits. Respond with ONLY valid minified JSON, no markdown fences, no commentary: {"flags":[{"quote":"...","severity":"high|prohibited|unsupported","issue":"...","rule":"...","suggestion":"..."}]}. If there are no problems return {"flags":[]}.';
+        'You are CadenSee, a regulatory marketing-compliance engine for medtech. Compare marketing CONTENT against an APPROVED RULESET and flag only genuine compliance problems: claims that exceed, contradict, or are not supported by the ruleset, plus prohibited language. Ignore style, tone, grammar. Be conservative and deterministic: flag only text that clearly violates an explicit rule in the ruleset. If a sentence does not clearly break a stated rule, do NOT flag it. Never flag the same text twice. For each problem return: the EXACT verbatim text from the content; a "severity" of exactly one of "high" (overstated efficacy or safety, e.g. a figure above the approved limit), "prohibited" (banned superlative, comparative, off-label, or diagnosis/treatment language), or "unsupported" (a claim with no backing rule); a 3-5 word "issue" label; the specific "rule" it breaks; and a compliant "suggestion" using only language the ruleset permits. Respond with ONLY valid minified JSON, no markdown fences, no commentary: {"flags":[{"quote":"...","severity":"high|prohibited|unsupported","issue":"...","rule":"...","suggestion":"..."}]}. If there are no problems return {"flags":[]}.';
       const out = await callClaude(sys, `APPROVED RULESET:\n${ruleset}\n\nCONTENT TO CHECK:\n${doc}`);
       const parsed = parseJSON(out);
       const f = parsed.flags || [];
       setFlags(f);
+      setCleanFromCheck(f.length === 0);
+      setDirty(false);
       log(`check run · ${f.length} finding${f.length === 1 ? "" : "s"} · logged`);
     } catch (e) {
       setCheckError("Could not read the response. Run the check again.");
@@ -197,6 +201,8 @@ export default function CadenSeeDemo() {
     if (!flag) return;
     setDoc((d) => d.replace(flag.quote, flag.suggestion));
     setFlags((f) => f.filter((_, i) => i !== fi));
+    setDirty(true);
+    setCleanFromCheck(false);
     log(`fix applied · ${sevOf(flag).label.toLowerCase()} resolved`);
   }
 
@@ -204,6 +210,9 @@ export default function CadenSeeDemo() {
     if (!genResult) return;
     setDoc((d) => d + "\n\n" + genResult.text);
     setGenResult(null);
+    setFlags(null);
+    setCleanFromCheck(false);
+    setDirty(false);
     setMode("check");
     log("generated content inserted into document");
   }
@@ -211,6 +220,8 @@ export default function CadenSeeDemo() {
   function resetDemo() {
     setDoc(DEFAULT_DOC);
     setFlags(null);
+    setCleanFromCheck(false);
+    setDirty(false);
     setGenResult(null);
     setEditing(false);
     setMode("check");
@@ -218,7 +229,8 @@ export default function CadenSeeDemo() {
   }
 
   const segments = flags ? buildSegments(doc, flags) : null;
-  const cleanResult = flags && flags.length === 0;
+  const cleanResult = flags && flags.length === 0 && cleanFromCheck && !dirty;
+  const resolvedPending = flags && flags.length === 0 && !cleanResult;
   const counts = flags
     ? flags.reduce((a, f) => { const k = sevOf(f) === SEV.high ? "high" : sevOf(f) === SEV.prohibited ? "prohibited" : "unsupported"; a[k]++; return a; }, { high: 0, prohibited: 0, unsupported: 0 })
     : null;
@@ -253,8 +265,8 @@ export default function CadenSeeDemo() {
         <section className="bg-white rounded-2xl border border-line flex flex-col min-w-0 shadow-sm overflow-hidden">
           <div className="flex items-center gap-2 px-5 py-3 border-b border-line">
             <span className="font-mono text-[11px] text-slatey">DECK</span>
-            <span className="text-[13px] font-medium text-ink truncate">VascuLink Pro — distributor deck.pptx</span>
-            <button onClick={() => { setEditing((e) => !e); setFlags(null); }}
+            <span className="text-[13px] font-medium text-ink truncate">VascuLink Pro - distributor deck.pptx</span>
+            <button onClick={() => { setEditing((e) => !e); setFlags(null); setCleanFromCheck(false); setDirty(false); }}
               className="ml-auto text-[12px] text-slatey hover:text-ink border border-line rounded-md px-2.5 py-1 transition-colors">
               {editing ? "Done" : "Edit content"}
             </button>
@@ -313,7 +325,7 @@ export default function CadenSeeDemo() {
                   </div>
                   {checking ? (
                     <div className="flex items-center gap-2 text-[14px] text-white/80 py-1">
-                      <Loader2 className="w-4 h-4 animate-spin" /> Scanning against ruleset…
+                      <Loader2 className="w-4 h-4 animate-spin" /> Scanning against ruleset...
                     </div>
                   ) : !flags ? (
                     <div className="text-[14px] text-white/55 py-1">Not yet checked</div>
@@ -321,6 +333,11 @@ export default function CadenSeeDemo() {
                     <div className="flex items-baseline gap-2">
                       <span className="font-display font-bold text-3xl text-clear">Clear</span>
                       <span className="text-[13px] text-white/60">all claims match the ruleset</span>
+                    </div>
+                  ) : resolvedPending ? (
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-display font-bold text-2xl text-white">Findings resolved</span>
+                      <span className="text-[13px] text-white/60">re-run to confirm</span>
                     </div>
                   ) : (
                     <div>
@@ -360,7 +377,7 @@ export default function CadenSeeDemo() {
                             <span className={`font-mono text-[10px] tracking-wide px-1.5 py-0.5 rounded ${s.chip}`}>{s.label.toUpperCase()}</span>
                             <span className="text-[13px] font-semibold text-ink truncate">{f.issue}</span>
                           </div>
-                          <div className="text-[13px] text-ink/80 italic leading-snug mb-2.5">“{f.quote}”</div>
+                          <div className="text-[13px] text-ink/80 italic leading-snug mb-2.5">"{f.quote}"</div>
                           <div className="flex items-start gap-1.5 font-mono text-[11px] text-slatey bg-paper rounded-md px-2 py-1.5 mb-3">
                             <span className="text-teal-600 shrink-0">RULE</span>
                             <span className="leading-snug">{f.rule}</span>
@@ -401,12 +418,12 @@ export default function CadenSeeDemo() {
                   <textarea value={instruction} onChange={(e) => setInstruction(e.target.value)}
                     className="w-full mt-1.5 text-[14px] border border-line rounded-xl p-3 outline-none focus:border-teal-500 resize-none h-24 bg-paper" />
                   <div className="flex items-center gap-1.5 text-[12px] text-teal-700 mt-2 bg-teal-50 rounded-lg px-2.5 py-1.5">
-                    <Lock className="w-3.5 h-3.5" /> Drafts from the approved ruleset only — invents nothing
+                    <Lock className="w-3.5 h-3.5" /> Drafts from the approved ruleset only. Invents nothing.
                   </div>
                 </div>
                 {generating && (
                   <div className="flex items-center justify-center gap-2 text-[13px] text-slatey pt-6">
-                    <Loader2 className="w-4 h-4 animate-spin" /> Drafting from approved sources…
+                    <Loader2 className="w-4 h-4 animate-spin" /> Drafting from approved sources...
                   </div>
                 )}
                 {genError && <div className="text-[13px] text-risk bg-risk-soft rounded-lg p-3">{genError}</div>}
@@ -477,7 +494,7 @@ export default function CadenSeeDemo() {
             </div>
             <div className="p-5 overflow-auto">
               <p className="text-[13px] text-slatey mb-3 leading-relaxed">
-                Paste a prospect’s approved claims and regulatory rules here before a meeting. Every check and every draft runs against exactly this.
+                Paste a prospect's approved claims and regulatory rules here before a meeting. Every check and every draft runs against exactly this.
               </p>
               <textarea value={ruleset} onChange={(e) => setRuleset(e.target.value)}
                 className="w-full h-80 text-[13px] border border-line rounded-xl p-4 outline-none focus:border-teal-500 font-mono resize-none bg-paper leading-relaxed" />
