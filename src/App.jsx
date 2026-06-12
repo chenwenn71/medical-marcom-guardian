@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
-  Check, Sparkles, Settings2, Loader2, X, Wand2,
-  RotateCcw, CornerDownLeft, ScanLine, Lock
+  Check, Sparkles, Settings2, Loader2, X, Wand2, Plus,
+  RotateCcw, CornerDownLeft, ScanLine, Lock, FileText, ClipboardPaste, ChevronDown
 } from "lucide-react";
 
-const DEFAULT_RULESET = `PRODUCT: VascuLink Pro - real-time vascular monitoring device
+const EXAMPLE_RULESET = `PRODUCT: VascuLink Pro - real-time vascular monitoring device
 
 REGULATORY STATUS
 - Cleared under FDA 510(k) K221847 for adult and pediatric use.
@@ -17,14 +17,14 @@ APPROVED EFFICACY CLAIMS
 
 PROHIBITED
 - No superlative or comparative claims ("best", "leading", "#1", "category leader"). No head-to-head clinical data is on file.
-- No efficacy figure above the approved 30%.
+- No efficacy figure above the approved limit stated above.
 - No claims of diagnosis or treatment; the device monitors only.
 - No off-label or unapproved-population claims.
 
 APPROVED DESCRIPTORS
 - "Trusted by clinical teams", "a solution for vascular monitoring".`;
 
-const DEFAULT_DOC = `VascuLink Pro - Distributor Overview
+const EXAMPLE_DOC = `VascuLink Pro - Distributor Overview
 
 VascuLink Pro delivers real-time vascular monitoring with clinical-grade accuracy, cleared under 510(k) K221847 for adult and pediatric use.
 
@@ -34,37 +34,16 @@ The leading device in its category, with adoption across 200+ US facilities.
 
 Available Q1 2026. Contact your regional representative for pricing and trial access.`;
 
+const CONTENT_TYPES = ["Website copy", "Brochure", "RFQ response", "Email", "Social post", "Datasheet"];
+
 const SEV = {
-  high: {
-    label: "High risk",
-    chip: "bg-risk-soft text-risk",
-    bar: "bg-risk",
-    dot: "#E5484D",
-    markBg: "rgba(229,72,77,.13)",
-    markBorder: "#E5484D",
-  },
-  prohibited: {
-    label: "Prohibited",
-    chip: "bg-caution-soft text-caution",
-    bar: "bg-caution",
-    dot: "#D9870F",
-    markBg: "rgba(217,135,15,.16)",
-    markBorder: "#D9870F",
-  },
-  unsupported: {
-    label: "Unsupported",
-    chip: "bg-slate-100 text-slatey",
-    bar: "bg-slatey",
-    dot: "#5A6B82",
-    markBg: "rgba(90,107,130,.13)",
-    markBorder: "#5A6B82",
-  },
+  high: { label: "High risk", chip: "bg-risk-soft text-risk", bar: "bg-risk", dot: "#E5484D", markBg: "rgba(229,72,77,.13)", markBorder: "#E5484D" },
+  prohibited: { label: "Prohibited", chip: "bg-caution-soft text-caution", bar: "bg-caution", dot: "#D9870F", markBg: "rgba(217,135,15,.16)", markBorder: "#D9870F" },
+  unsupported: { label: "Unsupported", chip: "bg-paper text-muted", bar: "bg-muted", dot: "#6B6E68", markBg: "rgba(107,110,104,.13)", markBorder: "#6B6E68" },
 };
 const sevOf = (f) => SEV[f?.severity] || SEV.unsupported;
 
-function nowStamp() {
-  return new Date().toLocaleTimeString("en-GB", { hour12: false });
-}
+const nowStamp = () => new Date().toLocaleTimeString("en-GB", { hour12: false });
 
 async function callClaude(system, userContent) {
   const res = await fetch("/api/messages", {
@@ -101,16 +80,18 @@ function buildSegments(text, flags) {
   return segments;
 }
 
-function BrandMark() {
+function Wordmark() {
   return (
-    <svg width="30" height="30" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M16 2.5 4.5 7v8.2C4.5 22.7 9.4 27.7 16 29.5c6.6-1.8 11.5-6.8 11.5-14.3V7L16 2.5Z"
-        fill="#0E8C8C" />
-      <path d="M16 2.5 4.5 7v8.2C4.5 22.7 9.4 27.7 16 29.5c6.6-1.8 11.5-6.8 11.5-14.3V7L16 2.5Z"
-        stroke="#0B7472" strokeWidth="1" />
-      <path d="M8.5 16.5h3.2l1.8-4.4 2.7 8 2-3.6h3.1"
-        stroke="#fff" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-    </svg>
+    <div className="flex items-center gap-2.5">
+      <div className="flex items-center">
+        <span className="font-logo font-bold text-[23px] leading-none text-ink tracking-tight">cadensee</span>
+        <span className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-[5px] bg-leaf text-white ml-1 mb-1.5 self-end">
+          <Plus className="w-3 h-3" strokeWidth={3.5} />
+        </span>
+      </div>
+      <span className="hidden sm:block w-px h-5 bg-line" />
+      <span className="hidden sm:block font-mono text-[10px] tracking-widest text-muted uppercase">Marketing compliance</span>
+    </div>
   );
 }
 
@@ -118,10 +99,9 @@ function CountUp({ value }) {
   const [n, setN] = useState(0);
   useEffect(() => {
     let raf, start;
-    const dur = 420;
     const step = (t) => {
       if (!start) start = t;
-      const p = Math.min((t - start) / dur, 1);
+      const p = Math.min((t - start) / 420, 1);
       setN(Math.round(p * value));
       if (p < 1) raf = requestAnimationFrame(step);
     };
@@ -132,8 +112,8 @@ function CountUp({ value }) {
 }
 
 export default function CadenSeeDemo() {
-  const [doc, setDoc] = useState(DEFAULT_DOC);
-  const [ruleset, setRuleset] = useState(DEFAULT_RULESET);
+  const [doc, setDoc] = useState("");
+  const [ruleset, setRuleset] = useState("");
   const [mode, setMode] = useState("check");
   const [editing, setEditing] = useState(false);
   const [showRuleset, setShowRuleset] = useState(false);
@@ -144,19 +124,22 @@ export default function CadenSeeDemo() {
   const [cleanFromCheck, setCleanFromCheck] = useState(false);
   const [dirty, setDirty] = useState(false);
 
-  const [instruction, setInstruction] = useState(
-    "Draft a short distributor email with an intro, product benefits, and clinical outcomes."
-  );
+  const [contentType, setContentType] = useState(CONTENT_TYPES[0]);
+  const [instruction, setInstruction] = useState("");
   const [generating, setGenerating] = useState(false);
   const [genResult, setGenResult] = useState(null);
   const [genError, setGenError] = useState("");
 
-  const [audit, setAudit] = useState([
-    { time: nowStamp(), text: "ruleset loaded · VascuLink Pro" },
-  ]);
+  const [audit, setAudit] = useState([]);
   const log = (text) => setAudit((a) => [{ time: nowStamp(), text }, ...a].slice(0, 6));
 
+  const hasDoc = doc.trim().length > 0;
+  const hasRules = ruleset.trim().length > 0;
+
+  function clearVerdict() { setFlags(null); setCleanFromCheck(false); setDirty(false); }
+
   async function runCheck() {
+    if (!hasDoc || !hasRules) return;
     setChecking(true);
     setCheckError("");
     setFlags(null);
@@ -179,16 +162,18 @@ export default function CadenSeeDemo() {
   }
 
   async function runGenerate() {
+    if (!hasRules) { setShowRuleset(true); return; }
+    if (!instruction.trim()) return;
     setGenerating(true);
     setGenError("");
     setGenResult(null);
     try {
       const sys =
-        'You are CadenSee, a compliant content generator for medtech. Using ONLY claims and language supported by the APPROVED RULESET, write the requested content. Never introduce any claim, figure, or descriptor not explicitly supported by the ruleset. Keep it concise. Respond with ONLY valid minified JSON, no markdown fences: {"text":"the generated content with \\n for line breaks","sources":["short ruleset reference","..."]}.';
+        `You are CadenSee, a compliant content generator for medtech. Write ${contentType} for the request below, using ONLY claims and language supported by the APPROVED RULESET. Never introduce any claim, figure, or descriptor not explicitly supported by the ruleset. Keep it concise and appropriate for ${contentType}. Respond with ONLY valid minified JSON, no markdown fences: {"text":"the generated content with \\n for line breaks","sources":["short ruleset reference","..."]}.`;
       const out = await callClaude(sys, `APPROVED RULESET:\n${ruleset}\n\nREQUEST:\n${instruction}`);
       const parsed = parseJSON(out);
       setGenResult(parsed);
-      log("draft generated · verified against ruleset");
+      log(`draft generated · ${contentType.toLowerCase()} · verified`);
     } catch (e) {
       setGenError("Could not read the response. Generate again.");
     } finally {
@@ -208,105 +193,118 @@ export default function CadenSeeDemo() {
 
   function insertGenerated() {
     if (!genResult) return;
-    setDoc((d) => d + "\n\n" + genResult.text);
+    setDoc((d) => (d ? d + "\n\n" : "") + genResult.text);
     setGenResult(null);
-    setFlags(null);
-    setCleanFromCheck(false);
-    setDirty(false);
+    clearVerdict();
     setMode("check");
     log("generated content inserted into document");
   }
 
+  function loadExampleDoc() { setDoc(EXAMPLE_DOC); setEditing(false); clearVerdict(); log("example content loaded"); }
+  function loadExampleRules() { setRuleset(EXAMPLE_RULESET); log("example ruleset loaded"); }
+
   function resetDemo() {
-    setDoc(DEFAULT_DOC);
-    setFlags(null);
-    setCleanFromCheck(false);
-    setDirty(false);
-    setGenResult(null);
-    setEditing(false);
-    setMode("check");
-    setAudit([{ time: nowStamp(), text: "ruleset loaded · VascuLink Pro" }]);
+    setDoc(""); setRuleset(""); clearVerdict();
+    setGenResult(null); setInstruction(""); setEditing(false);
+    setContentType(CONTENT_TYPES[0]); setMode("check"); setAudit([]);
   }
 
-  const segments = flags ? buildSegments(doc, flags) : null;
+  const segments = (flags && hasDoc) ? buildSegments(doc, flags) : null;
   const cleanResult = flags && flags.length === 0 && cleanFromCheck && !dirty;
   const resolvedPending = flags && flags.length === 0 && !cleanResult;
   const counts = flags
-    ? flags.reduce((a, f) => { const k = sevOf(f) === SEV.high ? "high" : sevOf(f) === SEV.prohibited ? "prohibited" : "unsupported"; a[k]++; return a; }, { high: 0, prohibited: 0, unsupported: 0 })
+    ? flags.reduce((a, f) => { const k = f.severity === "high" ? "high" : f.severity === "prohibited" ? "prohibited" : "unsupported"; a[k] = (a[k] || 0) + 1; return a; }, { high: 0, prohibited: 0, unsupported: 0 })
     : null;
 
   return (
     <div className="min-h-screen flex flex-col text-ink">
       {/* App bar */}
-      <header className="h-14 bg-white border-b border-line flex items-center px-5 gap-3 shrink-0">
-        <BrandMark />
-        <div className="leading-none">
-          <div className="font-display font-semibold text-[15px] tracking-tight text-ink">CadenSee</div>
-          <div className="font-mono text-[10px] text-slatey mt-1 tracking-wide">MARKETING COMPLIANCE</div>
-        </div>
+      <header className="h-16 bg-white border-b border-line flex items-center px-6 gap-3 shrink-0">
+        <Wordmark />
         <div className="ml-auto flex items-center gap-2">
-          <span className="hidden sm:flex items-center gap-1.5 font-mono text-[11px] text-slatey border border-line rounded-full px-2.5 py-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-teal-500 pulse-dot" /> Sonnet 4.6
+          <span className="hidden sm:flex items-center gap-1.5 font-mono text-[11px] text-muted border border-line rounded-full px-2.5 py-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-leaf pulse-dot" /> Sonnet 4.6
           </span>
           <button onClick={resetDemo}
-            className="flex items-center gap-1.5 text-[13px] text-slatey hover:text-ink border border-line rounded-lg px-3 py-1.5 bg-white transition-colors">
+            className="flex items-center gap-1.5 text-[13px] text-muted hover:text-ink border border-line rounded-lg px-3 py-1.5 bg-white transition-colors">
             <RotateCcw className="w-3.5 h-3.5" /> Reset
           </button>
           <button onClick={() => setShowRuleset(true)}
-            className="flex items-center gap-1.5 text-[13px] text-white bg-ink hover:bg-ink/90 rounded-lg px-3 py-1.5 transition-colors">
-            <Settings2 className="w-3.5 h-3.5" /> Ruleset
+            className={`flex items-center gap-1.5 text-[13px] rounded-lg px-3 py-1.5 transition-colors ${
+              hasRules ? "text-white bg-ink hover:bg-ink/90" : "text-white bg-leaf hover:bg-leaf-dark"
+            }`}>
+            <Settings2 className="w-3.5 h-3.5" /> {hasRules ? "Ruleset" : "Add ruleset"}
           </button>
         </div>
       </header>
 
       {/* Body */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_404px] gap-4 p-4 max-w-[1280px] w-full mx-auto">
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_410px] gap-4 p-4 max-w-[1320px] w-full mx-auto">
         {/* Document */}
         <section className="bg-white rounded-2xl border border-line flex flex-col min-w-0 shadow-sm overflow-hidden">
           <div className="flex items-center gap-2 px-5 py-3 border-b border-line">
-            <span className="font-mono text-[11px] text-slatey">DECK</span>
-            <span className="text-[13px] font-medium text-ink truncate">VascuLink Pro - distributor deck.pptx</span>
-            <button onClick={() => { setEditing((e) => !e); setFlags(null); setCleanFromCheck(false); setDirty(false); }}
-              className="ml-auto text-[12px] text-slatey hover:text-ink border border-line rounded-md px-2.5 py-1 transition-colors">
-              {editing ? "Done" : "Edit content"}
-            </button>
+            <span className="font-mono text-[11px] text-muted">DOC</span>
+            <span className="text-[13px] font-medium text-ink truncate">{hasDoc ? "Document under review" : "No document"}</span>
+            {hasDoc && (
+              <button onClick={() => { setEditing((e) => !e); clearVerdict(); }}
+                className="ml-auto text-[12px] text-muted hover:text-ink border border-line rounded-md px-2.5 py-1 transition-colors">
+                {editing ? "Done" : "Edit content"}
+              </button>
+            )}
           </div>
           <div className="relative flex-1 overflow-auto">
             {checking && <div className="scanline" />}
-            <div className="paper-grid min-h-full p-7 sm:p-9">
-              {editing ? (
-                <textarea value={doc} onChange={(e) => setDoc(e.target.value)}
-                  className="w-full h-full min-h-[22rem] text-[15px] leading-8 text-ink outline-none resize-none bg-transparent" />
-              ) : (
-                <div className="text-[15px] leading-8 text-ink whitespace-pre-wrap max-w-[60ch]">
-                  {segments
-                    ? segments.map((s, i) =>
-                        s.flag === -1 ? (
-                          <span key={i}>{s.text}</span>
-                        ) : (
-                          <mark key={i}
-                            style={{ background: sevOf(flags[s.flag]).markBg, borderBottom: `2px solid ${sevOf(flags[s.flag]).markBorder}` }}
-                            className="rounded-[3px] px-0.5 text-ink">
-                            {s.text}
-                          </mark>
-                        )
-                      )
-                    : doc}
+            {!hasDoc && !editing ? (
+              <div className="h-full flex flex-col items-center justify-center text-center px-8 py-16">
+                <div className="w-12 h-12 rounded-xl bg-paper flex items-center justify-center mb-4">
+                  <FileText className="w-6 h-6 text-muted" />
                 </div>
-              )}
-            </div>
+                <div className="text-[15px] font-medium text-ink mb-1">No content loaded</div>
+                <p className="text-[13px] text-muted max-w-xs mb-5 leading-relaxed">
+                  Paste the marketing copy you want to check against the approved ruleset.
+                </p>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setEditing(true)}
+                    className="flex items-center gap-1.5 text-[13px] font-medium text-white bg-leaf hover:bg-leaf-dark rounded-lg px-3.5 py-2 transition-colors">
+                    <ClipboardPaste className="w-4 h-4" /> Paste content
+                  </button>
+                  <button onClick={loadExampleDoc}
+                    className="text-[13px] text-muted hover:text-ink border border-line rounded-lg px-3.5 py-2 transition-colors">
+                    Load example
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="paper-grid min-h-full p-7 sm:p-9">
+                {editing ? (
+                  <textarea autoFocus value={doc} onChange={(e) => setDoc(e.target.value)}
+                    placeholder="Paste your marketing copy here..."
+                    className="w-full h-full min-h-[24rem] text-[15px] leading-8 text-ink outline-none resize-none bg-transparent placeholder:text-muted/60" />
+                ) : (
+                  <div className="text-[15px] leading-8 text-ink whitespace-pre-wrap max-w-[62ch]">
+                    {segments
+                      ? segments.map((s, i) =>
+                          s.flag === -1 ? <span key={i}>{s.text}</span> : (
+                            <mark key={i}
+                              style={{ background: sevOf(flags[s.flag]).markBg, borderBottom: `2px solid ${sevOf(flags[s.flag]).markBorder}` }}
+                              className="rounded-[3px] px-0.5 text-ink">{s.text}</mark>
+                          ))
+                      : doc}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </section>
 
         {/* Panel */}
         <aside className="bg-white rounded-2xl border border-line flex flex-col shadow-sm overflow-hidden">
-          {/* Mode toggle */}
           <div className="p-2.5 border-b border-line">
             <div className="grid grid-cols-2 gap-1 bg-paper rounded-xl p-1">
               {[["check", "Check", ScanLine], ["generate", "Generate", Sparkles]].map(([m, label, Icon]) => (
                 <button key={m} onClick={() => setMode(m)}
                   className={`py-2 text-[13px] font-medium rounded-lg flex items-center justify-center gap-1.5 transition-all ${
-                    mode === m ? "bg-white text-ink shadow-sm" : "text-slatey hover:text-ink"
+                    mode === m ? "bg-white text-ink shadow-sm" : "text-muted hover:text-ink"
                   }`}>
                   <Icon className="w-4 h-4" /> {label}
                 </button>
@@ -317,9 +315,8 @@ export default function CadenSeeDemo() {
           {/* CHECK */}
           {mode === "check" && (
             <div className="flex flex-col flex-1 min-h-0">
-              {/* Verdict readout (signature) */}
               <div className="px-4 pt-4">
-                <div className="rounded-xl border border-line bg-ink text-white px-4 py-3.5">
+                <div className="rounded-xl bg-ink text-white px-4 py-3.5">
                   <div className="flex items-center gap-1.5 font-mono text-[10px] tracking-widest text-white/55 mb-2">
                     <ScanLine className="w-3 h-3" /> COMPLIANCE VERDICT
                   </div>
@@ -331,7 +328,7 @@ export default function CadenSeeDemo() {
                     <div className="text-[14px] text-white/55 py-1">Not yet checked</div>
                   ) : cleanResult ? (
                     <div className="flex items-baseline gap-2">
-                      <span className="font-display font-bold text-3xl text-clear">Clear</span>
+                      <span className="font-display font-bold text-3xl text-leaf">Clear</span>
                       <span className="text-[13px] text-white/60">all claims match the ruleset</span>
                     </div>
                   ) : resolvedPending ? (
@@ -355,21 +352,22 @@ export default function CadenSeeDemo() {
                 </div>
               </div>
 
-              {/* Findings */}
               <div className="flex-1 overflow-auto px-4 py-4 space-y-3">
-                {!flags && !checking && (
-                  <p className="text-[13px] text-slatey leading-relaxed pt-2">
+                {!hasRules && (
+                  <div className="text-[13px] text-muted leading-relaxed bg-paper rounded-lg p-3">
+                    Add an approved ruleset first. <button onClick={() => setShowRuleset(true)} className="text-leaf-dark font-medium hover:underline">Add ruleset</button>
+                  </div>
+                )}
+                {hasRules && !flags && !checking && (
+                  <p className="text-[13px] text-muted leading-relaxed pt-1">
                     Run a check to scan this content against the approved ruleset. Each finding cites the exact rule it breaks.
                   </p>
                 )}
-                {checkError && (
-                  <div className="text-[13px] text-risk bg-risk-soft rounded-lg p-3">{checkError}</div>
-                )}
+                {checkError && <div className="text-[13px] text-risk bg-risk-soft rounded-lg p-3">{checkError}</div>}
                 {flags && flags.map((f, i) => {
                   const s = sevOf(f);
                   return (
-                    <div key={i} className="finding rounded-xl border border-line overflow-hidden bg-white"
-                      style={{ animationDelay: `${i * 90}ms` }}>
+                    <div key={i} className="finding rounded-xl border border-line overflow-hidden bg-white" style={{ animationDelay: `${i * 90}ms` }}>
                       <div className="flex">
                         <div className={`w-1 shrink-0 ${s.bar}`} />
                         <div className="flex-1 min-w-0 p-3.5">
@@ -378,17 +376,17 @@ export default function CadenSeeDemo() {
                             <span className="text-[13px] font-semibold text-ink truncate">{f.issue}</span>
                           </div>
                           <div className="text-[13px] text-ink/80 italic leading-snug mb-2.5">"{f.quote}"</div>
-                          <div className="flex items-start gap-1.5 font-mono text-[11px] text-slatey bg-paper rounded-md px-2 py-1.5 mb-3">
-                            <span className="text-teal-600 shrink-0">RULE</span>
+                          <div className="flex items-start gap-1.5 font-mono text-[11px] text-muted bg-paper rounded-md px-2 py-1.5 mb-3">
+                            <span className="text-leaf-dark shrink-0">RULE</span>
                             <span className="leading-snug">{f.rule}</span>
                           </div>
                           <div className="flex items-end justify-between gap-2">
                             <div className="min-w-0">
-                              <div className="font-mono text-[10px] text-slatey tracking-wide mb-0.5">APPROVED WORDING</div>
-                              <div className="text-[12.5px] text-clear leading-snug">{f.suggestion}</div>
+                              <div className="font-mono text-[10px] text-muted tracking-wide mb-0.5">APPROVED WORDING</div>
+                              <div className="text-[12.5px] text-leaf-dark leading-snug">{f.suggestion}</div>
                             </div>
                             <button onClick={() => applyFix(i)}
-                              className="shrink-0 text-[12px] font-medium text-white bg-clear hover:brightness-95 rounded-lg px-3 py-1.5 transition">
+                              className="shrink-0 text-[12px] font-medium text-white bg-leaf hover:bg-leaf-dark rounded-lg px-3 py-1.5 transition-colors">
                               Apply
                             </button>
                           </div>
@@ -400,8 +398,8 @@ export default function CadenSeeDemo() {
               </div>
 
               <div className="p-4 border-t border-line">
-                <button onClick={runCheck} disabled={checking}
-                  className="w-full py-3 text-[14px] font-semibold rounded-xl bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors">
+                <button onClick={runCheck} disabled={checking || !hasDoc || !hasRules}
+                  className="w-full py-3 text-[14px] font-semibold rounded-xl bg-leaf text-white hover:bg-leaf-dark disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors">
                   {checking ? <Loader2 className="w-4 h-4 animate-spin" /> : <ScanLine className="w-4 h-4" />}
                   {flags ? "Re-run check" : "Run compliance check"}
                 </button>
@@ -414,33 +412,44 @@ export default function CadenSeeDemo() {
             <div className="flex flex-col flex-1 min-h-0">
               <div className="flex-1 overflow-auto px-4 py-4 space-y-3">
                 <div>
-                  <label className="font-mono text-[10px] tracking-wide text-slatey">INSTRUCTION</label>
+                  <label className="font-mono text-[10px] tracking-wide text-muted">CONTENT TYPE</label>
+                  <div className="relative mt-1.5">
+                    <select value={contentType} onChange={(e) => setContentType(e.target.value)}
+                      className="w-full appearance-none text-[14px] border border-line rounded-xl pl-3 pr-9 py-2.5 outline-none focus:border-leaf bg-white cursor-pointer">
+                      {CONTENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-muted absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                </div>
+                <div>
+                  <label className="font-mono text-[10px] tracking-wide text-muted">INSTRUCTION</label>
                   <textarea value={instruction} onChange={(e) => setInstruction(e.target.value)}
-                    className="w-full mt-1.5 text-[14px] border border-line rounded-xl p-3 outline-none focus:border-teal-500 resize-none h-24 bg-paper" />
-                  <div className="flex items-center gap-1.5 text-[12px] text-teal-700 mt-2 bg-teal-50 rounded-lg px-2.5 py-1.5">
+                    placeholder={`Describe the ${contentType.toLowerCase()} you need...`}
+                    className="w-full mt-1.5 text-[14px] border border-line rounded-xl p-3 outline-none focus:border-leaf resize-none h-24 bg-white placeholder:text-muted/60" />
+                  <div className="flex items-center gap-1.5 text-[12px] text-leaf-dark mt-2 bg-leaf-soft rounded-lg px-2.5 py-1.5">
                     <Lock className="w-3.5 h-3.5" /> Drafts from the approved ruleset only. Invents nothing.
                   </div>
                 </div>
                 {generating && (
-                  <div className="flex items-center justify-center gap-2 text-[13px] text-slatey pt-6">
+                  <div className="flex items-center justify-center gap-2 text-[13px] text-muted pt-6">
                     <Loader2 className="w-4 h-4 animate-spin" /> Drafting from approved sources...
                   </div>
                 )}
                 {genError && <div className="text-[13px] text-risk bg-risk-soft rounded-lg p-3">{genError}</div>}
                 {genResult && (
-                  <div className="finding rounded-xl border border-clear/30 overflow-hidden">
-                    <div className="bg-clear-soft px-3.5 py-3">
-                      <div className="flex items-center gap-1.5 font-mono text-[10px] tracking-wide text-clear mb-2">
-                        <Check className="w-3.5 h-3.5" /> GENERATED · VERIFIED CLEAN
+                  <div className="finding rounded-xl border border-leaf/30 overflow-hidden">
+                    <div className="bg-leaf-soft px-3.5 py-3">
+                      <div className="flex items-center gap-1.5 font-mono text-[10px] tracking-wide text-leaf-dark mb-2">
+                        <Check className="w-3.5 h-3.5" /> {contentType.toUpperCase()} · VERIFIED CLEAN
                       </div>
                       <div className="text-[14px] text-ink whitespace-pre-wrap leading-relaxed">{genResult.text}</div>
                     </div>
                     {genResult.sources && (
-                      <div className="px-3.5 py-2.5 bg-white border-t border-clear/20">
-                        <div className="font-mono text-[10px] text-slatey tracking-wide mb-1.5">SOURCES</div>
+                      <div className="px-3.5 py-2.5 bg-white border-t border-leaf/20">
+                        <div className="font-mono text-[10px] text-muted tracking-wide mb-1.5">SOURCES</div>
                         <div className="flex flex-wrap gap-1.5">
                           {genResult.sources.map((src, i) => (
-                            <span key={i} className="font-mono text-[10.5px] text-slatey bg-paper border border-line rounded px-1.5 py-0.5">{src}</span>
+                            <span key={i} className="font-mono text-[10.5px] text-muted bg-paper border border-line rounded px-1.5 py-0.5">{src}</span>
                           ))}
                         </div>
                       </div>
@@ -455,8 +464,8 @@ export default function CadenSeeDemo() {
                     <CornerDownLeft className="w-4 h-4" /> Insert into document
                   </button>
                 )}
-                <button onClick={runGenerate} disabled={generating}
-                  className="w-full py-3 text-[14px] font-semibold rounded-xl bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors">
+                <button onClick={runGenerate} disabled={generating || !instruction.trim()}
+                  className="w-full py-3 text-[14px] font-semibold rounded-xl bg-leaf text-white hover:bg-leaf-dark disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors">
                   {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
                   {genResult ? "Regenerate" : "Generate"}
                 </button>
@@ -466,17 +475,21 @@ export default function CadenSeeDemo() {
 
           {/* Audit ticker */}
           <div className="border-t border-line bg-paper px-4 py-2.5">
-            <div className="flex items-center gap-1.5 font-mono text-[9.5px] tracking-widest text-slatey mb-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-teal-500 pulse-dot" /> AUDIT TRAIL
+            <div className="flex items-center gap-1.5 font-mono text-[9.5px] tracking-widest text-muted mb-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-leaf pulse-dot" /> AUDIT TRAIL
             </div>
-            <div className="space-y-1 max-h-16 overflow-hidden">
-              {audit.map((a, i) => (
-                <div key={i} className="flex gap-2 font-mono text-[10.5px] leading-tight" style={{ opacity: 1 - i * 0.16 }}>
-                  <span className="text-slatey/70 shrink-0">{a.time}</span>
-                  <span className="text-ink/70 truncate">{a.text}</span>
-                </div>
-              ))}
-            </div>
+            {audit.length === 0 ? (
+              <div className="font-mono text-[10.5px] text-muted/60">No activity yet</div>
+            ) : (
+              <div className="space-y-1 max-h-16 overflow-hidden">
+                {audit.map((a, i) => (
+                  <div key={i} className="flex gap-2 font-mono text-[10.5px] leading-tight" style={{ opacity: 1 - i * 0.16 }}>
+                    <span className="text-muted/70 shrink-0">{a.time}</span>
+                    <span className="text-ink/70 truncate">{a.text}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </aside>
       </div>
@@ -486,18 +499,22 @@ export default function CadenSeeDemo() {
         <div className="fixed inset-0 bg-ink/50 backdrop-blur-sm flex items-center justify-center p-5 z-20">
           <div className="bg-white rounded-2xl w-full max-w-2xl max-h-full flex flex-col shadow-2xl">
             <div className="flex items-center gap-2 px-5 py-4 border-b border-line">
-              <Settings2 className="w-4 h-4 text-teal-600" />
+              <Settings2 className="w-4 h-4 text-leaf-dark" />
               <span className="font-display font-semibold text-ink">Approved ruleset</span>
-              <button onClick={() => setShowRuleset(false)} className="ml-auto text-slatey hover:text-ink">
+              {!hasRules && (
+                <button onClick={loadExampleRules} className="ml-auto text-[12px] text-leaf-dark font-medium hover:underline">Load example</button>
+              )}
+              <button onClick={() => setShowRuleset(false)} className={`text-muted hover:text-ink ${hasRules ? "ml-auto" : ""}`}>
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="p-5 overflow-auto">
-              <p className="text-[13px] text-slatey mb-3 leading-relaxed">
+              <p className="text-[13px] text-muted mb-3 leading-relaxed">
                 Paste a prospect's approved claims and regulatory rules here before a meeting. Every check and every draft runs against exactly this.
               </p>
               <textarea value={ruleset} onChange={(e) => setRuleset(e.target.value)}
-                className="w-full h-80 text-[13px] border border-line rounded-xl p-4 outline-none focus:border-teal-500 font-mono resize-none bg-paper leading-relaxed" />
+                placeholder="Paste the approved claims, indications, and prohibited language..."
+                className="w-full h-80 text-[13px] border border-line rounded-xl p-4 outline-none focus:border-leaf font-mono resize-none bg-paper leading-relaxed placeholder:text-muted/60" />
             </div>
             <div className="px-5 py-4 border-t border-line flex justify-end">
               <button onClick={() => setShowRuleset(false)}
