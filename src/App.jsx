@@ -4,6 +4,7 @@ import {
   RotateCcw, CornerDownLeft, ScanLine, Lock, ChevronDown, Circle, MessageSquarePlus
 } from "lucide-react";
 import { LOGO } from "./logo.js";
+import { CompetitorsView } from "./CompetitorsView.jsx";
 
 const EXAMPLE_RULESET = `PRODUCT: VascuLink Pro - real-time vascular monitoring device
 
@@ -179,6 +180,7 @@ function DocPane({ doc, setDoc, segments, flags, onUserEdit }) {
 export default function CadenSeeDemo() {
   const [doc, setDoc] = useState("");
   const [ruleset, setRuleset] = useState("");
+  const [view, setView] = useState("workspace"); // workspace | competitors | market
   const [mode, setMode] = useState("check");
   const [showRuleset, setShowRuleset] = useState(false);
 
@@ -284,6 +286,16 @@ export default function CadenSeeDemo() {
         <span className="hidden sm:block w-px h-5 bg-line" />
         <span className="hidden sm:block font-mono text-[10px] tracking-widest text-muted uppercase">Marketing compliance</span>
         <div className="ml-auto flex items-center gap-2">
+          <div className="flex items-center bg-paper rounded-lg p-0.5 border border-line">
+            {[["workspace", "Workspace"], ["competitors", "Competitors"], ["market", "Market Pulse"]].map(([v, label]) => (
+              <button key={v} onClick={() => setView(v)}
+                className={`text-[12.5px] font-medium px-3 py-1.5 rounded-md transition-colors ${
+                  view === v ? "bg-white text-ink shadow-sm" : "text-muted hover:text-ink"
+                }`}>
+                {label}
+              </button>
+            ))}
+          </div>
           <span className="hidden sm:flex items-center gap-1.5 font-mono text-[11px] text-muted border border-line rounded-full px-2.5 py-1">
             <span className="w-1.5 h-1.5 rounded-full bg-leaf pulse-dot" /> Sonnet 4.6
           </span>
@@ -295,6 +307,11 @@ export default function CadenSeeDemo() {
       </header>
 
       {/* Body */}
+      {view === "competitors" && (
+        <CompetitorsView ruleset={ruleset} hasRules={hasRules} onOpenRuleset={() => setShowRuleset(true)} log={log} />
+      )}
+
+      {view === "workspace" && (
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_410px] gap-4 p-4 max-w-[1320px] w-full mx-auto">
         {/* Document */}
         <section className="bg-white rounded-2xl border border-line flex flex-col min-w-0 shadow-sm overflow-hidden">
@@ -556,6 +573,7 @@ export default function CadenSeeDemo() {
           </div>
         </aside>
       </div>
+      )}
 
       {/* Ruleset modal */}
       {showRuleset && (
