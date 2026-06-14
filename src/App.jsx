@@ -312,7 +312,7 @@ export default function CadenSeeDemo() {
         <CompetitorsView ruleset={ruleset} hasRules={hasRules} onOpenRuleset={() => setShowRuleset(true)} log={log} />
       )}
 
-      {view === "market" && <MarketPulseView log={log} />}
+      {view === "market" && <MarketPulseView log={log} ruleset={ruleset} />}
 
       {view === "workspace" && (
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_410px] gap-4 p-4 max-w-[1320px] w-full mx-auto">

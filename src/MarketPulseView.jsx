@@ -4,7 +4,7 @@ import { callClaude, parseJSON } from "./shared.js";
 import { PULSE_TOPIC, SOURCE_LINKS, fetchMarketChatter } from "./marketpulse.js";
 
 const MARKET_SYS =
-  'You are CadenSee Market Pulse, a market-intelligence summarizer for medtech marketing teams. You read raw patient and clinician chatter from public forums and return the top discussion themes for the week. This is MARKET CONTEXT, not regulatory review. Identify the 3 to 5 most significant themes. For each theme return: a short "title" phrase; "sentiment" exactly one of "positive", "neutral", "negative"; one short representative "quote" taken verbatim from the chatter; a "source" label copied exactly from the [SOURCE: ...] tag on that quote\'s line; and a one-line "insight" telling a marketer what to do with it. Also return one "positioningRisk": a single sentence flagging where a marketing claim (the user\'s or a competitor\'s) is contradicted by the dominant market conversation, so the team avoids echoing it. Also return an overall "sentiment". Respond with ONLY valid minified JSON, no markdown fences: {"sentiment":"positive|neutral|negative","themes":[{"title":"...","sentiment":"positive|neutral|negative","quote":"...","source":"...","insight":"..."}],"positioningRisk":"..."}';
+  'You are CadenSee Market Pulse, a market-intelligence summarizer for medtech marketing teams. You read raw patient and clinician chatter from public forums and return the top discussion themes for the week. This is MARKET CONTEXT, not regulatory review. Identify the 3 to 5 most significant themes. Derive the themes, sentiment, quotes, and insights ONLY from the RAW CHATTER — never from the ruleset. For each theme return: a short "title" phrase; "sentiment" exactly one of "positive", "neutral", "negative"; one short representative "quote" taken verbatim from the chatter; a "source" label copied exactly from the [SOURCE: ...] tag on that quote\'s line; and a one-line "insight" telling a marketer what to do with it. Then return one "positioningRisk": use the APPROVED RULESET only here — a single sentence flagging when an approved claim the user is allowed to make is contradicted by the dominant market theme, so the team avoids echoing it. If no approved claim is contradicted, set positioningRisk to "". Also return an overall "sentiment". Respond with ONLY valid minified JSON, no markdown fences: {"sentiment":"positive|neutral|negative","themes":[{"title":"...","sentiment":"positive|neutral|negative","quote":"...","source":"...","insight":"..."}],"positioningRisk":"..."}';
 
 const SENT = {
   positive: { label: "Positive", cls: "bg-leaf-soft text-leaf-dark", dot: "#57B23A" },
@@ -24,7 +24,7 @@ function StatTile({ icon: Icon, value, label }) {
   );
 }
 
-export function MarketPulseView({ log }) {
+export function MarketPulseView({ log, ruleset }) {
   const [phase, setPhase] = useState("idle"); // idle | loading | done
   const [result, setResult] = useState(null);
   const [sources, setSources] = useState(0);
@@ -36,7 +36,11 @@ export function MarketPulseView({ log }) {
       const chatter = await fetchMarketChatter(PULSE_TOPIC);
       setSources(chatter.length);
       const blob = chatter.map((c) => `[SOURCE: ${c.source}] ${c.text}`).join("\n");
-      const out = await callClaude(MARKET_SYS, `MARKET TOPIC: ${PULSE_TOPIC}\n\nRAW CHATTER:\n${blob}`);
+      // Ruleset is provided for positioning-risk reasoning ONLY; themes/sentiment come from chatter alone.
+      const rulesetBlock = ruleset && ruleset.trim()
+        ? `APPROVED RULESET (use ONLY for positioningRisk):\n${ruleset}\n\n`
+        : "";
+      const out = await callClaude(MARKET_SYS, `MARKET TOPIC: ${PULSE_TOPIC}\n\n${rulesetBlock}RAW CHATTER:\n${blob}`);
       setResult(parseJSON(out));
       setPhase("done");
       log(`market pulse generated · ${PULSE_TOPIC}`);
