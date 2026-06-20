@@ -62,7 +62,11 @@ async function callClaude(system, userContent) {
 }
 
 function parseJSON(text) {
-  return JSON.parse(text.replace(/```json/g, "").replace(/```/g, "").trim());
+  let clean = text.replace(/```json/g, "").replace(/```/g, "").trim();
+  const first = clean.indexOf("{");
+  const last = clean.lastIndexOf("}");
+  if (first !== -1 && last !== -1 && last > first) clean = clean.slice(first, last + 1);
+  return JSON.parse(clean.trim());
 }
 
 function buildSegments(text, flags) {
@@ -229,7 +233,7 @@ export default function CadenSeeDemo() {
     if (!commentText) { setGenResult(null); setGenVerify(null); }
     try {
       const genSys =
-        `You are CadenSee, a compliant content generator for medtech. Write ${contentType} using ONLY claims and language supported by the APPROVED RULESET. Never introduce any claim, figure, or descriptor not explicitly supported by the ruleset. Keep it concise and appropriate for ${contentType}. Respond with ONLY valid minified JSON, no markdown fences: {"text":"the content with \\n for line breaks","sources":["short ruleset reference","..."]}.`;
+        `You are CadenSee, a compliant content generator for medtech. Write ${contentType} using ONLY claims and language supported by the APPROVED RULESET. Never introduce any claim, figure, or descriptor not explicitly supported by the ruleset. Keep it concise and appropriate for ${contentType}. Respond with ONLY valid minified JSON, no markdown fences: {"text":"the content with \\n for line breaks","sources":["short ruleset reference","..."]}. The "text" value MUST be a valid minified JSON string with every newline escaped as \\n and every double quote escaped; do not emit raw line breaks inside it.`;
       let userContent = `APPROVED RULESET:\n${ruleset}\n\nREQUEST:\n${instruction}`;
       if (commentText && genResult) {
         userContent += `\n\nCURRENT DRAFT:\n${genResult.text}\n\nREVISION COMMENT:\n${commentText}\n\nRevise the current draft to satisfy the revision comment. Keep everything else as-is. Use only the ruleset.`;
