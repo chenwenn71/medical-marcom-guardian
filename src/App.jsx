@@ -289,7 +289,7 @@ export default function CadenSeeDemo() {
       <header className="h-16 bg-white border-b border-line flex items-center px-6 gap-3 shrink-0">
         <img src={LOGO} alt="cadensee" className="h-[26px] w-auto" />
         <span className="hidden sm:block w-px h-5 bg-line" />
-        <span className="hidden sm:block font-mono text-[10px] tracking-widest text-muted uppercase">Marketing compliance</span>
+        <span className="hidden sm:block font-mono text-[10px] tracking-widest text-muted uppercase">One voice, amplified.</span>
         <div className="ml-auto flex items-center gap-2">
           <div className="flex items-center bg-paper rounded-lg p-0.5 border border-line">
             {[["workspace", "Workspace"], ["competitors", "Competitors"], ["market", "Market Pulse"]].map(([v, label]) => (
@@ -323,8 +323,8 @@ export default function CadenSeeDemo() {
         {/* Document */}
         <section className="bg-white rounded-2xl border border-line flex flex-col min-w-0 shadow-sm overflow-hidden">
           <div className="flex items-center gap-2 px-5 py-3 border-b border-line">
-            <span className="font-mono text-[11px] text-muted">DOC</span>
-            <span className="text-[13px] font-medium text-ink truncate">{hasDoc ? "Document under review" : "Untitled document"}</span>
+            <span className="font-mono text-[11px] text-muted">DRAFT</span>
+            <span className="text-[13px] font-medium text-ink truncate">Working draft</span>
             {!hasDoc && (
               <button onClick={() => { setDoc(EXAMPLE_DOC); clearVerdict(); log("example content loaded"); }}
                 className="ml-auto text-[12px] text-leaf-dark font-medium hover:underline">Load example</button>
